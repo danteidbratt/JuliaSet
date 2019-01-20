@@ -1,48 +1,47 @@
 int maxIterations = 20;
-int threshold = 2;
+int threshold = 1;
 
 boolean mouseControlled = false;
+boolean cursorVisible = true;
 boolean animating = false;
+
 float rads = PI * 1.5;
 float radius = 0.2625;
-float origoX = -0.0125;
-float speed = 0.001;
+float cardioidCenter = -0.0125;
+float speed = 0.005;
 
 float minX = -2;
 float maxX = 2;
+float minY = -2;
+float maxY = 2;
 
-// FullScreen
-float minY = -2 * 0.5625;
-float maxY = 2 * 0.5625;
-
-// Square Window
-// float minY = -2;
-// float maxY = 2;
-
-float zoomIncrement = 0.05;
+float screenRatio;
+float zoomIncrement = 2.0;
 
 float c1 = -0.8;
 float c2 = 0;
 
 int minCol = 0;
-int maxCol = 100;
-int colRange = 100;
+int maxCol = 180;
+int colRange = 200;
 
 void setup() {
-  // size(900, 900);
+  // size(800, 800);
   fullScreen();
+  screenRatio = (float) height / width;
+  minY *= screenRatio;
+  maxY *= screenRatio;
   frameRate(30);
-  //cursor(CROSS);
-  noCursor();
+  cursor(CROSS);
   colorMode(HSB, colRange);
-  background(maxCol, 100, 100);
+  background(maxCol, colRange, colRange);
 }
 
 void draw() {
   if (animating) {
     animate(true);
   }
-  background(maxCol, 100, 100);
+  background(maxCol, colRange, colRange);
   loadPixels();
   for (int y = 0; y < height; y++) {
     int yy = y * width;
@@ -69,7 +68,7 @@ void draw() {
 
       if (n == maxIterations) {
         pixels[yy + x] = color(0);
-      } else if (n > threshold) {
+      } else {
         pixels[yy + x] = color(map(maxIterations - n, 0, maxIterations, minCol, maxCol), colRange, colRange);
       }
     }
@@ -83,85 +82,91 @@ void draw() {
 void keyPressed() {
   if (key == '.' && threshold < maxIterations) {
     threshold++;
-  }
-  if (key == ',' && threshold > 2) {
+  } else if (key == ',' && threshold > 0) {
     threshold--;
-  }
-  if (key == 's' && maxIterations > 0) {
+  } else if (key == 's' && maxIterations > 0) {
     maxIterations--;
-    println(maxIterations);
-  }
-  if (key == 'w' && maxIterations < 100) {
+  } else if (key == 'w' && maxIterations < colRange) {
     maxIterations++;
-    println(maxIterations);
-  }
-  if (key == '+' && maxX - minX > zoomIncrement * 3) {
+  } else if (key == '+' && maxX - minX > zoomIncrement * 3) {
+  } else if (key == '-' && maxX - minX < 4) {
+  } else if (keyCode == UP) {
     zoom(true);
-  }
-  if (key == '-' && maxX - minX < 4) {
+  } else if (keyCode == DOWN) {
     zoom(false);
-  }
-  if (keyCode == UP && minY > -2) {
-    navigate(UP);
-  }
-  if (keyCode == DOWN && maxY < 2) {
-    navigate(DOWN);
-  }
-  if (keyCode == LEFT && minX > -2) {
-    navigate(LEFT);
-  }
-  if (keyCode == RIGHT && maxX < 2) {
-    navigate(RIGHT);
-  }
-  if (key == 'm') {
+  } else if (keyCode == LEFT && minX > -2) {
+  } else if (keyCode == RIGHT && maxX < 2) {
+  } else if (key == 'm') {
     mouseControlled = !mouseControlled;
-    trackMouse();
-  }
-  if (key == 'd') {
+  } else if (key == 'c') {
+    toggleCursor();
+  } else if (key == 'd') {
     animate(true);
-  }
-  if (key == 'a') {
+  } else if (key == 'a') {
     animate(false);
-  }
-  if (key == ' ') {
+  } else if (key == ' ') {
     toggleAnimating();
   }
   loop();
 }
 
 void toggleAnimating() {
-  animating = ! animating;
+  animating = !animating;
+}
+
+void toggleCursor() {
+  if (cursorVisible) {
+    noCursor();
+  } else {
+    cursor(CROSS);
+  }
+  cursorVisible = !cursorVisible;
 }
 
 void animate(boolean direction) {
   rads += speed * (direction ? 1 : -1);
   float rads2 = rads * 2 + PI / 2;
-  float tempX = radius * 2 * sin(rads) + origoX;
+  float tempX = radius * 2 * sin(rads) + cardioidCenter;
   float tempY = radius * 2 * cos(rads);
   c1 = tempX + sin(rads2) * radius;
   c2 = tempY + cos(rads2) * radius;
 }
 
 void zoom(boolean in) {
-  minX += zoomIncrement * (in ? 1 : -1);
-  maxX += zoomIncrement * (in ? -1 : 1);
-  minY += zoomIncrement * (in ? 1 : -1);
-  maxY += zoomIncrement * (in ? -1 : 1);
+  float midX = (minX + maxX) / 2;
+  float midY = (minY + maxY) / 2;
+  float zoomRatio = (in ? 1.0 / zoomIncrement : zoomIncrement);
+  minX = midX - (midX - minX) * zoomRatio;
+  maxX = midX + (maxX - midX) * zoomRatio;
+  minY = midY - (midY - minY) * zoomRatio;
+  maxY = midY + (maxY - midY) * zoomRatio;
 }
 
-void navigate(int direction) {
-  int verticalDiff = (direction == UP ? -1 : (direction == DOWN ? 1 : 0));
-  int horizontalDiff = (direction == LEFT ? -1 : (direction == RIGHT ? 1 : 0));
-  minX += zoomIncrement * horizontalDiff;
-  maxX += zoomIncrement * horizontalDiff;
-  minY += zoomIncrement * verticalDiff;
-  maxY += zoomIncrement * verticalDiff;
+void mouseDragged() {
+  float xDiff = map((float) (pmouseX - mouseX), 0, width, 0, maxX - minX);
+  float yDiff = map((float) (pmouseY - mouseY), 0, height, 0, maxY - minY);
+  minX += xDiff;
+  maxX += xDiff;
+  minY += yDiff;
+  maxY += yDiff;
+  loop();
+}
+
+void mouseClicked() {
+  float newMidX = map(mouseX, 0, width, minX, maxX);
+  float newMidY = map(mouseY, 0, height, minY, maxY);
+  float xFromMid = maxX - ((maxX + minX) / 2);
+  float yFromMid = maxY - ((maxY + minY) / 2);
+  minX = newMidX - xFromMid;
+  maxX = newMidX + xFromMid;
+  minY = newMidY - yFromMid;
+  maxY = newMidY + yFromMid;
+  loop();
 }
 
 // for Julia Set
 void mouseMoved() {
-  if (mouseControlled) {
-    println("c1:" + c1 + "   c2:" + c2);
+  if (mouseControlled && !animating) {
     trackMouse();
     loop();
   }

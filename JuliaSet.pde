@@ -1,4 +1,4 @@
-boolean mouseControlled = false;
+boolean mouseControl = false;
 boolean cursorVisible = true;
 boolean animating = false;
 boolean colored = true;
@@ -33,8 +33,6 @@ void setup() {
   frameRate(50);
   cursor(CROSS);
   colorMode(HSB, colorRange);
-  background(maxColor, colorRange, colorRange);
-  resetJuliaSet();
 }
 
 void draw() {
@@ -49,18 +47,18 @@ void draw() {
 void generateImage() {
   background(maxColor, colorRange, colorRange);
   loadPixels();
-  int aggregate = 0;
+  int pixelAggregate = 0;
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      int iterations = getIterations(x, y);
-      pixels[aggregate + x] = getPixelColor(iterations);
+      int iterations = applyFormula(x, y);
+      pixels[pixelAggregate + x] = getPixelColor(iterations);
     }
-    aggregate += width;
+    pixelAggregate += width;
   }
   updatePixels();
 }
 
-int getIterations(int x, int y) {
+int applyFormula(int x, int y) {
   float a = map(x, 0, width, minX, maxX);
   float b = map(y, 0, height, minY, maxY);
   if (mandelbrot) {
@@ -69,10 +67,11 @@ int getIterations(int x, int y) {
   }
   int n = 0;
   while (n < maxIterations) {
-    float aa = a * a - b * b;
-    float bb = 2 * a * b;
-    a = aa + c1;
-    b = bb + c2;
+    float aa = a * a;
+    float bb = b * b;
+    float ab2 = a * b * 2;
+    a = aa - bb + c1;
+    b = ab2 + c2;
     if (abs(a + b) > 2) {
       break;
     }
@@ -103,7 +102,7 @@ void keyPressed() {
   } else if (key == '-') {
     zoom(false);
   } else if (key == 'm') {
-    mouseControlled = !mouseControlled;
+    mouseControl = !mouseControl;
   } else if (key == 'n') {
     toggleCursorVisible();
   } else if (key == ' ') {
@@ -143,11 +142,11 @@ void animate(boolean direction) {
     return;
   }
   cardioidAngle += animationSpeed * (direction ? 1 : -1);
-  float rads2 = cardioidAngle * 2 + PI / 2;
+  float tempAngle = cardioidAngle * 2 + PI / 2;
   float tempX = cardioidRadius * 2 * sin(cardioidAngle) + cardioidCenter;
   float tempY = cardioidRadius * 2 * cos(cardioidAngle);
-  c1 = tempX + sin(rads2) * cardioidRadius;
-  c2 = tempY + cos(rads2) * cardioidRadius;
+  c1 = tempX + sin(tempAngle) * cardioidRadius;
+  c2 = tempY + cos(tempAngle) * cardioidRadius;
 }
 
 void zoom(boolean in) {
@@ -171,14 +170,14 @@ void mouseDragged() {
 }
 
 void mouseClicked() {
-  float newMidX = map(mouseX, 0, width, minX, maxX);
-  float newMidY = map(mouseY, 0, height, minY, maxY);
-  float xFromMid = maxX - ((maxX + minX) / 2);
-  float yFromMid = maxY - ((maxY + minY) / 2);
-  minX = newMidX - xFromMid;
-  maxX = newMidX + xFromMid;
-  minY = newMidY - yFromMid;
-  maxY = newMidY + yFromMid;
+  float selectedX = map(mouseX, 0, width, minX, maxX);
+  float selectedY = map(mouseY, 0, height, minY, maxY);
+  float xDistance = maxX - ((maxX + minX) / 2);
+  float yDistance = maxY - ((maxY + minY) / 2);
+  minX = selectedX - xDistance;
+  maxX = selectedX + xDistance;
+  minY = selectedY - yDistance;
+  maxY = selectedY + yDistance;
   loop();
 }
 

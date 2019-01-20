@@ -69,7 +69,7 @@ void draw() {
       if (n == maxIterations) {
         pixels[yy + x] = color(0);
       } else {
-        pixels[yy + x] = color(map(maxIterations - n, 0, maxIterations, minCol, maxCol), colRange, colRange);
+        pixels[yy + x] = color(((maxIterations - n) * 5) % maxCol, colRange, colRange);
       }
     }
   }

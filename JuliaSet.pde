@@ -1,13 +1,14 @@
 boolean mouseControl = false;
 boolean cursorVisible = true;
-boolean animating = false;
 boolean colored = true;
 boolean mandelbrot = false;
+int animating = 0;
+int zooming = 0;
 
 float cardioidAngle = PI * 1.5;
 float cardioidRadius = 0.2625;
 float cardioidCenter = -0.0125;
-float animationSpeed = 0.005;
+float animationSpeed = 0.001;
 
 float zoomIncrement = 1.02;
 
@@ -20,6 +21,7 @@ float maxY = 2;
 float c1 = -0.8;
 float c2 = 0;
 
+float screenRatio;
 int minColor = 0;
 int maxColor = 200;
 int colorRange = 200;
@@ -27,33 +29,35 @@ int colorIntensity = 6;
 
 void setup() {
   size(400, 400);
-  float screenRatio = (float) height / width;
-  minY *= screenRatio;
-  maxY *= screenRatio;
+  //fullScreen();
+  screenRatio = (float) height / width;
+  resetPosition();
   frameRate(50);
   cursor(CROSS);
   colorMode(HSB, colorRange);
+  background(0);
 }
 
 void draw() {
-  if (animating) {
-    animate(true);
-  } else {
-    noLoop();
+  setLoop();
+  if (animating != 0) {
+    animate(animating);
+  }
+  if (zooming != 0) {
+    zoom(zooming);
   }
   generateImage();
 }
 
 void generateImage() {
-  background(maxColor, colorRange, colorRange);
   loadPixels();
-  int pixelAggregate = 0;
+  int counter = 0;
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      int iterations = applyFormula(x, y);
-      pixels[pixelAggregate + x] = getPixelColor(iterations);
+      int formulaOutput = applyFormula(x, y);
+      pixels[counter + x] = getPixelColor(formulaOutput);
     }
-    pixelAggregate += width;
+    counter += width;
   }
   updatePixels();
 }
@@ -65,8 +69,9 @@ int applyFormula(int x, int y) {
     c1 = a;
     c2 = b;
   }
-  int n = 0;
-  while (n < maxIterations) {
+
+  int counter = 0;
+  while (counter < maxIterations) {
     float aa = a * a;
     float bb = b * b;
     float ab2 = a * b * 2;
@@ -75,20 +80,18 @@ int applyFormula(int x, int y) {
     if (abs(a + b) > 2) {
       break;
     }
-    n++;
+    counter++;
   }
-  return n;
+  return counter;
 }
 
 color getPixelColor(int n) {
   if (n == maxIterations) {
     return color(0);
+  } else  if (colored) {
+    return color((((maxIterations - n) * colorIntensity) % maxColor), colorRange, colorRange);
   } else {
-    if (colored) {
-      return color((((maxIterations - n) * colorIntensity) % maxColor), colorRange, colorRange);
-    } else {
-      return color((n * colorIntensity) % maxColor);
-    }
+    return color((n * colorIntensity) % maxColor);
   }
 }
 
@@ -98,19 +101,21 @@ void keyPressed() {
   } else if (key == '1' && maxIterations > 0) {
     maxIterations--;
   } else if (key == '+') {
-    zoom(true);
+    zoom(1);
   } else if (key == '-') {
-    zoom(false);
+    zoom(-1);
   } else if (key == 'm') {
     mouseControl = !mouseControl;
   } else if (key == 'n') {
     toggleCursorVisible();
-  } else if (key == ' ') {
-    toggleAnimating();
+  } else if (key == 'x') {
+    toggleAnimating(1);
+  } else if (key == 'z') {
+    toggleAnimating(-1);
   } else if (keyCode == RIGHT) {
-    animate(true);
+    animate(animating);
   } else if (keyCode == LEFT) {
-    animate(false);
+    animate(animating);
   } else if (key == 'c') {
     toggleColored();
   } else if (key == '.') {
@@ -119,12 +124,44 @@ void keyPressed() {
     resetJuliaSet();
   } else if (key == 'r') {
     resetPosition();
+  } else if (key == 'i') {
+    toggleZooming(1);
+  } else if (key == 'o') {
+    toggleZooming(-1);
+  } else if (key == ' ') {
+    freeze();
   }
-  loop();
+  redraw();
+  setLoop();
 }
 
-void toggleAnimating() {
-  animating = !animating;
+void toggleAnimating(int direction) {
+  if (mandelbrot) {
+    return;
+  }
+  if (animating == direction) {
+    animating = 0;
+  } else {
+    animating = direction; 
+  }
+  setLoop();
+}
+
+void toggleZooming(int direction) {
+  if (zooming == direction) {
+    zooming = 0;
+  } else {
+    zooming = direction;
+  }
+  setLoop();
+}
+
+void setLoop() {
+  if (animating != 0 || zooming != 0) {
+    loop();
+  } else {
+    noLoop();
+  }
 }
 
 void toggleCursorVisible() {
@@ -136,12 +173,12 @@ void toggleCursorVisible() {
   cursorVisible = !cursorVisible;
 }
 
-void animate(boolean direction) {
+void animate(int direction) {
   if (mandelbrot) {
-    animating = false;
+    animating = 0;
     return;
   }
-  cardioidAngle += animationSpeed * (direction ? 1 : -1);
+  cardioidAngle += animationSpeed *  direction;
   float tempAngle = cardioidAngle * 2 + PI / 2;
   float tempX = cardioidRadius * 2 * sin(cardioidAngle) + cardioidCenter;
   float tempY = cardioidRadius * 2 * cos(cardioidAngle);
@@ -149,10 +186,10 @@ void animate(boolean direction) {
   c2 = tempY + cos(tempAngle) * cardioidRadius;
 }
 
-void zoom(boolean in) {
+void zoom(int direction) {
   float midX = (minX + maxX) / 2;
   float midY = (minY + maxY) / 2;
-  float zoomRatio = (in ? 1.0 / zoomIncrement : zoomIncrement);
+  float zoomRatio = (direction == 1 ? 1.0 / zoomIncrement : zoomIncrement);
   minX = midX - (midX - minX) * zoomRatio;
   maxX = midX + (maxX - midX) * zoomRatio;
   minY = midY - (midY - minY) * zoomRatio;
@@ -181,9 +218,8 @@ void mouseClicked() {
   loop();
 }
 
-// for Julia Set
 void mouseMoved() {
-  if (mouseControl && !animating && !mandelbrot) {
+  if (mouseControl && animating == 0 && !mandelbrot) {
     trackMouse();
     loop();
   }
@@ -200,6 +236,7 @@ void trackMouse() {
 
 void resetJuliaSet() {
   mandelbrot = false;
+  freeze();
   resetPosition();
   resetAnimation();
   c1 = -0.8;
@@ -208,14 +245,20 @@ void resetJuliaSet() {
 
 void resetMandelbrotSet() {
   mandelbrot = true;
+  freeze();
   resetPosition();
 }
 
 void resetPosition() {
   minX = -2;
   maxX = 2;
-  minY = -2;
-  maxY = 2;
+  minY = -2 * screenRatio;
+  maxY = 2 * screenRatio;
+}
+
+void freeze() {
+  zooming = 0;
+  animating = 0;
 }
 
 void resetAnimation() {

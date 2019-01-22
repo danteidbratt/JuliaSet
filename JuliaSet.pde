@@ -12,7 +12,7 @@ float animationSpeed = 0.005;
 float zoomIncrement = 1.02;
 
 int maxIterations = 56;
-int maxIterationLimit = 120;
+int maxIterationLimit = 130;
 float minX = -2;
 float maxX = 2;
 float minY = -2;
@@ -183,7 +183,7 @@ void mouseClicked() {
 
 // for Julia Set
 void mouseMoved() {
-  if (mouseControlled && !animating && !mandelbrot) {
+  if (mouseControl && !animating && !mandelbrot) {
     trackMouse();
     loop();
   }

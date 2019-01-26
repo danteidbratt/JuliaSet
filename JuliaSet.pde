@@ -10,32 +10,35 @@ float cardioidRadius = 0.2625;
 float cardioidCenter = -0.0125;
 float animationSpeed = 0.001;
 
-float zoomIncrement = 1.02;
+float zoomIncrement = 1.1;
+float navigationSpeed = 0.01;
 
-int maxIterations = 56;
-int maxIterationLimit = 130;
+int maxIterations = 32;
+// int maxIterationsLimit = 1000;
+// int colorRotations = 10;
+// int colorRange = maxIterationsLimit / colorRotations;
+int colorRange = 200;
+int escapeValue = 8;
+float c1 = -0.8;
+float c2 = 0;
+
 float minX = -2;
 float maxX = 2;
 float minY = -2;
 float maxY = 2;
-float c1 = -0.8;
-float c2 = 0;
 
 float screenRatio;
-int minColor = 0;
-int maxColor = 200;
-int colorRange = 200;
-int colorIntensity = 6;
 
 void setup() {
-  size(400, 400);
-  //fullScreen();
+  // size(200, 200);
+  fullScreen();
   screenRatio = (float) height / width;
   resetPosition();
   frameRate(50);
   cursor(CROSS);
   colorMode(HSB, colorRange);
   background(0);
+  
 }
 
 void draw() {
@@ -65,6 +68,7 @@ void generateImage() {
 int applyFormula(int x, int y) {
   float a = map(x, 0, width, minX, maxX);
   float b = map(y, 0, height, minY, maxY);
+  
   if (mandelbrot) {
     c1 = a;
     c2 = b;
@@ -72,12 +76,12 @@ int applyFormula(int x, int y) {
 
   int counter = 0;
   while (counter < maxIterations) {
-    float aa = a * a;
-    float bb = b * b;
+    float aa = sq(a);
+    float bb = sq(b);
     float ab2 = a * b * 2;
     a = aa - bb + c1;
     b = ab2 + c2;
-    if (abs(a + b) > 2) {
+    if (abs(a + b) > escapeValue) {
       break;
     }
     counter++;
@@ -85,37 +89,39 @@ int applyFormula(int x, int y) {
   return counter;
 }
 
-color getPixelColor(int n) {
-  if (n == maxIterations) {
-    return color(0);
-  } else  if (colored) {
-    return color((((maxIterations - n) * colorIntensity) % maxColor), colorRange, colorRange);
+color getPixelColor(int n) { 
+  int x = maxIterations - n;
+  if (colored && x != 0) {
+    return color(x % colorRange, colorRange, colorRange);
   } else {
-    return color((n * colorIntensity) % maxColor);
+    return color(x % colorRange);
   }
 }
 
 void keyPressed() {
-  if (key == '2' && maxIterations < maxIterationLimit) {
-    maxIterations++;
+  if (key == '2') {
+    maxIterations += 5;
   } else if (key == '1' && maxIterations > 0) {
-    maxIterations--;
+    maxIterations -= 5;
   } else if (key == '+') {
-    zoom(1);
+    escapeValue++;
   } else if (key == '-') {
-    zoom(-1);
+    if (escapeValue > 0) {
+     escapeValue--; 
+    }
   } else if (key == 'm') {
     mouseControl = !mouseControl;
+    trackMouse();
+    freeze();
+    resetAnimation();
   } else if (key == 'n') {
     toggleCursorVisible();
   } else if (key == 'x') {
     toggleAnimating(1);
   } else if (key == 'z') {
     toggleAnimating(-1);
-  } else if (keyCode == RIGHT) {
-    animate(animating);
-  } else if (keyCode == LEFT) {
-    animate(animating);
+  } else if (keyCode > 36 && keyCode < 41) {
+    navigate();
   } else if (key == 'c') {
     toggleColored();
   } else if (key == '.') {
@@ -125,9 +131,9 @@ void keyPressed() {
   } else if (key == 'r') {
     resetPosition();
   } else if (key == 'i') {
-    toggleZooming(1);
-  } else if (key == 'o') {
     toggleZooming(-1);
+  } else if (key == 'o') {
+    toggleZooming(1);
   } else if (key == ' ') {
     freeze();
   }
@@ -189,7 +195,7 @@ void animate(int direction) {
 void zoom(int direction) {
   float midX = (minX + maxX) / 2;
   float midY = (minY + maxY) / 2;
-  float zoomRatio = (direction == 1 ? 1.0 / zoomIncrement : zoomIncrement);
+  float zoomRatio = pow(zoomIncrement, direction);
   minX = midX - (midX - minX) * zoomRatio;
   maxX = midX + (maxX - midX) * zoomRatio;
   minY = midY - (midY - minY) * zoomRatio;
@@ -234,6 +240,19 @@ void trackMouse() {
   c2 = map(mouseY, 0, height, -1, 1);
 }
 
+void navigate() {
+  int xDirection = (keyCode == RIGHT ? 1 : keyCode == LEFT ? -1 : 0);
+  int yDirection = (keyCode == DOWN ? 1 : keyCode == UP ? -1 : 0);
+  float xTotal = maxX - minX;
+  float yTotal = maxY - minY;
+  float xDiff = xTotal * navigationSpeed * xDirection; 
+  float yDiff = yTotal * navigationSpeed * yDirection;
+  minX += xDiff;
+  maxX += xDiff;
+  minY += yDiff;
+  maxY += yDiff;
+}
+
 void resetJuliaSet() {
   mandelbrot = false;
   freeze();
@@ -245,6 +264,7 @@ void resetJuliaSet() {
 
 void resetMandelbrotSet() {
   mandelbrot = true;
+  mouseControl = false;
   freeze();
   resetPosition();
 }

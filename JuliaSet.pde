@@ -2,31 +2,34 @@ boolean mouseControl = false;
 boolean cursorVisible = true;
 boolean colored = true;
 boolean mandelbrot = false;
+
 int animating = 0;
 int zooming = 0;
 
-float cardioidAngle = PI * 1.5;
-float cardioidRadius = 0.2625;
-float cardioidCenter = -0.0125;
-float animationSpeed = 0.001;
-
-float zoomIncrement = 5;
-float navigationSpeed = 0.01;
-
 int maxIterations = 32;
-int iterationIncrement = 100;
-
-int colorRange = 360;
 int escapeValue = 8;
-double c1 = -0.8;
-double c2 = 0;
 
+double constantX = -0.8;
+double constantY = 0;
 double minX = -2;
 double maxX = 2;
 double minY = -2;
 double maxY = 2;
 
+float cardioidAngle = PI * 1.5;
+float cardioidRadius = 0.2625;
+float cardioidCenter = -0.0125;
+
+float animationIncrement = 0.001;
+float zoomIncrement = 4;
+float navigationIncrement = 0.01;
+int iterationIncrement = 100;
+
+double defaultX = -0.5;
+double defaultY = 0;
+
 float screenRatio;
+int colorRange = 360;
 
 void setup() {
   fullScreen();
@@ -36,7 +39,6 @@ void setup() {
   cursor(CROSS);
   colorMode(HSB, colorRange);
   background(0);
-  
 }
 
 void draw() {
@@ -66,10 +68,10 @@ void generateImage() {
 int applyFormula(int x, int y) {
   double a = mapper(x, 0, width, minX, maxX);
   double b = mapper(y, 0, height, minY, maxY);
-  
+
   if (mandelbrot) {
-    c1 = a;
-    c2 = b;
+    constantX = a;
+    constantY = b;
   }
 
   int counter = 0;
@@ -77,8 +79,8 @@ int applyFormula(int x, int y) {
     double aa = a * a;
     double bb = b * b;
     double ab2 = a * b * 2;
-    a = aa - bb + c1;
-    b = ab2 + c2;
+    a = aa - bb + constantX;
+    b = ab2 + constantY;
     double result = a + b;
     if (result > escapeValue || result < -escapeValue) {
       break;
@@ -89,11 +91,11 @@ int applyFormula(int x, int y) {
 }
 
 color getPixelColor(int n) { 
-  int x = maxIterations - n;
-  if (colored && x != 0) {
-    return color(x % colorRange, colorRange, colorRange);
+  int nuance = maxIterations - n;
+  if (colored && nuance != 0) {
+    return color(nuance % colorRange, colorRange, colorRange);
   } else {
-    return color(x % colorRange);
+    return color(nuance % colorRange);
   }
 }
 
@@ -104,15 +106,10 @@ void keyPressed() {
     maxIterations -= iterationIncrement;
   } else if (key == '+') {
     escapeValue++;
-  } else if (key == '-') {
-    if (escapeValue > 0) {
-     escapeValue--; 
-    }
-  } else if (key == 'm') {
-    mouseControl = !mouseControl;
-    trackMouse();
-    freeze();
-    resetAnimation();
+  } else if (key == '-' && escapeValue > 0) {
+    escapeValue--;
+  } else if (key == 'm' && !mandelbrot) {
+    toggleMouseControl();
   } else if (key == 'n') {
     toggleCursorVisible();
   } else if (key == 'x') {
@@ -136,8 +133,14 @@ void keyPressed() {
   } else if (key == ' ') {
     freeze();
   }
-  redraw();
-  setLoop();
+  loop();
+}
+
+void toggleMouseControl() {
+  mouseControl = !mouseControl;
+  mapMouseToConstant();
+  freeze();
+  resetAnimation();
 }
 
 void toggleAnimating(int direction) {
@@ -147,7 +150,7 @@ void toggleAnimating(int direction) {
   if (animating == direction) {
     animating = 0;
   } else {
-    animating = direction; 
+    animating = direction;
   }
   setLoop();
 }
@@ -183,12 +186,12 @@ void animate(int direction) {
     animating = 0;
     return;
   }
-  cardioidAngle += animationSpeed *  direction;
+  cardioidAngle += animationIncrement *  direction;
   float tempAngle = cardioidAngle * 2 + PI / 2;
   float tempX = cardioidRadius * 2 * sin(cardioidAngle) + cardioidCenter;
   float tempY = cardioidRadius * 2 * cos(cardioidAngle);
-  c1 = tempX + sin(tempAngle) * cardioidRadius;
-  c2 = tempY + cos(tempAngle) * cardioidRadius;
+  constantX = tempX + sin(tempAngle) * cardioidRadius;
+  constantY = tempY + cos(tempAngle) * cardioidRadius;
 }
 
 void zoom(int direction) {
@@ -206,8 +209,6 @@ void mouseDragged() {
   loop();
 }
 
-
-
 void dragPicture() {
   double xDiff = mapper(pmouseX - mouseX, 0, width, 0, maxX - minX);
   double yDiff = mapper(pmouseY - mouseY, 0, height, 0, maxY - minY);
@@ -218,13 +219,13 @@ void dragPicture() {
 }
 
 void mouseClicked() {
-  setCenter();
+  double selectedX = mapper(mouseX, 0, width, minX, maxX);
+  double selectedY = mapper(mouseY, 0, height, minY, maxY);
+  setCenter(selectedX, selectedY);
   loop();
 }
 
-void setCenter() {
-  double selectedX = mapper(mouseX, 0, width, minX, maxX);
-  double selectedY = mapper(mouseY, 0, height, minY, maxY);
+void setCenter(double selectedX, double selectedY) {
   double xDistance = maxX - ((maxX + minX) / 2);
   double yDistance = maxY - ((maxY + minY) / 2);
   minX = selectedX - xDistance;
@@ -236,7 +237,7 @@ void setCenter() {
 
 void mouseMoved() {
   if (mouseControl && animating == 0 && !mandelbrot) {
-    trackMouse();
+    mapMouseToConstant();
     loop();
   }
 }
@@ -245,9 +246,9 @@ void toggleColored() {
   colored = !colored;
 }
 
-void trackMouse() {
-  c1 = mapper(mouseX, 0, width, -1, 1);
-  c2 = mapper(mouseY, 0, height, -1, 1);
+void mapMouseToConstant() {
+  constantX = mapper(mouseX, 0, width, -1, 1);
+  constantY = mapper(mouseY, 0, height, -1, 1);
 }
 
 void navigate() {
@@ -255,8 +256,8 @@ void navigate() {
   int yDirection = (keyCode == DOWN ? 1 : keyCode == UP ? -1 : 0);
   double xTotal = maxX - minX;
   double yTotal = maxY - minY;
-  double xDiff = xTotal * navigationSpeed * xDirection; 
-  double yDiff = yTotal * navigationSpeed * yDirection;
+  double xDiff = xTotal * navigationIncrement * xDirection; 
+  double yDiff = yTotal * navigationIncrement * yDirection;
   minX += xDiff;
   maxX += xDiff;
   minY += yDiff;
@@ -268,8 +269,8 @@ void resetJuliaSet() {
   freeze();
   resetPosition();
   resetAnimation();
-  c1 = -0.8;
-  c2 = 0;
+  constantX = -0.8;
+  constantY = 0;
 }
 
 void resetMandelbrotSet() {
@@ -277,6 +278,7 @@ void resetMandelbrotSet() {
   mouseControl = false;
   freeze();
   resetPosition();
+  setCenter(defaultX, defaultY);
 }
 
 void resetPosition() {
@@ -296,5 +298,5 @@ void resetAnimation() {
 }
 
 double mapper(double value, double start1, double stop1, double start2, double stop2) {
-    return (value - start1) / (stop1 - start1) * (stop2 - start2) + start2;
+  return (value - start1) / (stop1 - start1) * (stop2 - start2) + start2;
 }

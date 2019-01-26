@@ -10,27 +10,25 @@ float cardioidRadius = 0.2625;
 float cardioidCenter = -0.0125;
 float animationSpeed = 0.001;
 
-float zoomIncrement = 1.1;
+float zoomIncrement = 5;
 float navigationSpeed = 0.01;
 
 int maxIterations = 32;
-// int maxIterationsLimit = 1000;
-// int colorRotations = 10;
-// int colorRange = maxIterationsLimit / colorRotations;
-int colorRange = 200;
-int escapeValue = 8;
-float c1 = -0.8;
-float c2 = 0;
+int iterationIncrement = 100;
 
-float minX = -2;
-float maxX = 2;
-float minY = -2;
-float maxY = 2;
+int colorRange = 360;
+int escapeValue = 8;
+double c1 = -0.8;
+double c2 = 0;
+
+double minX = -2;
+double maxX = 2;
+double minY = -2;
+double maxY = 2;
 
 float screenRatio;
 
 void setup() {
-  // size(200, 200);
   fullScreen();
   screenRatio = (float) height / width;
   resetPosition();
@@ -66,8 +64,8 @@ void generateImage() {
 }
 
 int applyFormula(int x, int y) {
-  float a = map(x, 0, width, minX, maxX);
-  float b = map(y, 0, height, minY, maxY);
+  double a = mapper(x, 0, width, minX, maxX);
+  double b = mapper(y, 0, height, minY, maxY);
   
   if (mandelbrot) {
     c1 = a;
@@ -76,12 +74,13 @@ int applyFormula(int x, int y) {
 
   int counter = 0;
   while (counter < maxIterations) {
-    float aa = sq(a);
-    float bb = sq(b);
-    float ab2 = a * b * 2;
+    double aa = a * a;
+    double bb = b * b;
+    double ab2 = a * b * 2;
     a = aa - bb + c1;
     b = ab2 + c2;
-    if (abs(a + b) > escapeValue) {
+    double result = a + b;
+    if (result > escapeValue || result < -escapeValue) {
       break;
     }
     counter++;
@@ -100,9 +99,9 @@ color getPixelColor(int n) {
 
 void keyPressed() {
   if (key == '2') {
-    maxIterations += 5;
-  } else if (key == '1' && maxIterations > 0) {
-    maxIterations -= 5;
+    maxIterations += iterationIncrement;
+  } else if (key == '1' && maxIterations - iterationIncrement > 0) {
+    maxIterations -= iterationIncrement;
   } else if (key == '+') {
     escapeValue++;
   } else if (key == '-') {
@@ -193,9 +192,9 @@ void animate(int direction) {
 }
 
 void zoom(int direction) {
-  float midX = (minX + maxX) / 2;
-  float midY = (minY + maxY) / 2;
-  float zoomRatio = pow(zoomIncrement, direction);
+  double midX = (minX + maxX) / 2;
+  double midY = (minY + maxY) / 2;
+  double zoomRatio = pow(zoomIncrement, direction);
   minX = midX - (midX - minX) * zoomRatio;
   maxX = midX + (maxX - midX) * zoomRatio;
   minY = midY - (midY - minY) * zoomRatio;
@@ -203,25 +202,36 @@ void zoom(int direction) {
 }
 
 void mouseDragged() {
-  float xDiff = map((float) (pmouseX - mouseX), 0, width, 0, maxX - minX);
-  float yDiff = map((float) (pmouseY - mouseY), 0, height, 0, maxY - minY);
+  dragPicture();
+  loop();
+}
+
+
+
+void dragPicture() {
+  double xDiff = mapper(pmouseX - mouseX, 0, width, 0, maxX - minX);
+  double yDiff = mapper(pmouseY - mouseY, 0, height, 0, maxY - minY);
   minX += xDiff;
   maxX += xDiff;
   minY += yDiff;
   maxY += yDiff;
-  loop();
 }
 
 void mouseClicked() {
-  float selectedX = map(mouseX, 0, width, minX, maxX);
-  float selectedY = map(mouseY, 0, height, minY, maxY);
-  float xDistance = maxX - ((maxX + minX) / 2);
-  float yDistance = maxY - ((maxY + minY) / 2);
+  setCenter();
+  loop();
+}
+
+void setCenter() {
+  double selectedX = mapper(mouseX, 0, width, minX, maxX);
+  double selectedY = mapper(mouseY, 0, height, minY, maxY);
+  double xDistance = maxX - ((maxX + minX) / 2);
+  double yDistance = maxY - ((maxY + minY) / 2);
   minX = selectedX - xDistance;
   maxX = selectedX + xDistance;
   minY = selectedY - yDistance;
   maxY = selectedY + yDistance;
-  loop();
+  println("X:" + selectedX + " Y:" + selectedY);
 }
 
 void mouseMoved() {
@@ -236,17 +246,17 @@ void toggleColored() {
 }
 
 void trackMouse() {
-  c1 = map(mouseX, 0, width, -1, 1);
-  c2 = map(mouseY, 0, height, -1, 1);
+  c1 = mapper(mouseX, 0, width, -1, 1);
+  c2 = mapper(mouseY, 0, height, -1, 1);
 }
 
 void navigate() {
   int xDirection = (keyCode == RIGHT ? 1 : keyCode == LEFT ? -1 : 0);
   int yDirection = (keyCode == DOWN ? 1 : keyCode == UP ? -1 : 0);
-  float xTotal = maxX - minX;
-  float yTotal = maxY - minY;
-  float xDiff = xTotal * navigationSpeed * xDirection; 
-  float yDiff = yTotal * navigationSpeed * yDirection;
+  double xTotal = maxX - minX;
+  double yTotal = maxY - minY;
+  double xDiff = xTotal * navigationSpeed * xDirection; 
+  double yDiff = yTotal * navigationSpeed * yDirection;
   minX += xDiff;
   maxX += xDiff;
   minY += yDiff;
@@ -283,4 +293,8 @@ void freeze() {
 
 void resetAnimation() {
   cardioidAngle = PI * 1.5;
+}
+
+double mapper(double value, double start1, double stop1, double start2, double stop2) {
+    return (value - start1) / (stop1 - start1) * (stop2 - start2) + start2;
 }

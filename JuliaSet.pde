@@ -4,8 +4,9 @@ boolean colored = true;
 boolean mandelbrot = false;
 
 boolean recording = false;
-String videoDirectoryTemplate = "./recordings/frames/video_$$$/frame-######.png";
+String videoDirectoryTemplate = "./recordings/frames/$$$/frame-#######.png";
 String videoDirectory;
+String videoName;
 
 int animating = 0;
 int zooming = 0;
@@ -58,7 +59,8 @@ void draw() {
   }
   generateImage();
   if (recording) {
-    record(); 
+    record();
+    drawRecordingDot();
   }
 }
 
@@ -153,10 +155,11 @@ void keyPressed() {
 void toggleRecording() {
   recording = !recording;
   if (recording) {
-    videoDirectory = videoDirectoryTemplate.replace("$$$", nf((int) random(10000), 5));
+    videoName = "video_" + nf((int) random(10000), 6);
+    videoDirectory = videoDirectoryTemplate.replace("$$$", videoName);
     println("Recording...");
   } else {
-    println("Stopped Recording."); 
+    println("...Stopped Recording\nSaved as: " + videoName); 
   }
 }
 
@@ -330,4 +333,11 @@ double mapper(double value, double start1, double stop1, double start2, double s
 
 void record() {
   saveFrame(videoDirectory);
+}
+
+void drawRecordingDot() {
+  stroke(colorRange);
+  strokeWeight(2);
+  fill(0, colorRange, colorRange);
+  ellipse(30, 30, 30, 30);
 }

@@ -32,9 +32,9 @@ float screenRatio;
 int colorRange = 360;
 
 void setup() {
-  size(300, 300);
+  size(800, 800);
   screenRatio = (float) height / width;
-  resetPosition();
+  resetScope();
   frameRate(50);
   cursor(CROSS);
   colorMode(HSB, colorRange);
@@ -127,8 +127,6 @@ void keyPressed() {
     resetMandelbrotSet();
   } else if (key == ',') {
     resetJuliaSet();
-  } else if (key == 'r') {
-    resetPosition();
   } else if (key == 'i') {
     toggleZooming(-1);
   } else if (key == 'o') {
@@ -270,7 +268,7 @@ void navigate() {
 void resetJuliaSet() {
   mandelbrot = false;
   freeze();
-  resetPosition();
+  resetScope();
   resetAnimation();
   constantX = -0.8;
   constantY = 0;
@@ -280,11 +278,11 @@ void resetMandelbrotSet() {
   mandelbrot = true;
   mouseControl = false;
   freeze();
-  resetPosition();
+  resetScope();
   setCenter(defaultX, defaultY);
 }
 
-void resetPosition() {
+void resetScope() {
   minX = -2;
   maxX = 2;
   minY = -2 * screenRatio;

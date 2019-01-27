@@ -228,6 +228,7 @@ void mouseClicked() {
   double selectedY = mapper(mouseY, 0, height, minY, maxY);
   setCenter(selectedX, selectedY);
   redraw();
+  saveFrame("C:/Users/dante/Pictures/Processing_Movies/JuliaSet/video1/frame-####.png");
 }
 
 void setCenter(double selectedX, double selectedY) {

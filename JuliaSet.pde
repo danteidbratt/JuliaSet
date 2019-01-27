@@ -32,17 +32,17 @@ float screenRatio;
 int colorRange = 360;
 
 void setup() {
-  fullScreen();
+  size(300, 300);
   screenRatio = (float) height / width;
   resetPosition();
   frameRate(50);
   cursor(CROSS);
   colorMode(HSB, colorRange);
   background(0);
+  noLoop();
 }
 
 void draw() {
-  setLoop();
   if (animating != 0) {
     animate(animating);
   }
@@ -91,11 +91,10 @@ int applyFormula(int x, int y) {
 }
 
 color getPixelColor(int n) { 
-  int nuance = maxIterations - n;
-  if (colored && nuance != 0) {
-    return color(nuance % colorRange, colorRange, colorRange);
+  if (colored && n != maxIterations) {
+    return color(n % colorRange, colorRange, colorRange);
   } else {
-    return color(nuance % colorRange);
+    return color((maxIterations - n) % colorRange);
   }
 }
 
@@ -104,6 +103,10 @@ void keyPressed() {
     maxIterations += iterationIncrement;
   } else if (key == '1' && maxIterations - iterationIncrement > 0) {
     maxIterations -= iterationIncrement;
+  } else if (key == 'w') {
+    zoom(-1);
+  } else if (key == 'q') {
+    zoom(1);
   } else if (key == '+') {
     escapeValue++;
   } else if (key == '-' && escapeValue > 0) {
@@ -133,7 +136,8 @@ void keyPressed() {
   } else if (key == ' ') {
     freeze();
   }
-  loop();
+  setLoop();
+  redraw();
 }
 
 void toggleMouseControl() {
@@ -151,8 +155,8 @@ void toggleAnimating(int direction) {
     animating = 0;
   } else {
     animating = direction;
+    mouseControl = false;
   }
-  setLoop();
 }
 
 void toggleZooming(int direction) {
@@ -161,7 +165,6 @@ void toggleZooming(int direction) {
   } else {
     zooming = direction;
   }
-  setLoop();
 }
 
 void setLoop() {
@@ -206,7 +209,7 @@ void zoom(int direction) {
 
 void mouseDragged() {
   dragPicture();
-  loop();
+  redraw();
 }
 
 void dragPicture() {
@@ -222,7 +225,7 @@ void mouseClicked() {
   double selectedX = mapper(mouseX, 0, width, minX, maxX);
   double selectedY = mapper(mouseY, 0, height, minY, maxY);
   setCenter(selectedX, selectedY);
-  loop();
+  redraw();
 }
 
 void setCenter(double selectedX, double selectedY) {
@@ -238,7 +241,7 @@ void setCenter(double selectedX, double selectedY) {
 void mouseMoved() {
   if (mouseControl && animating == 0 && !mandelbrot) {
     mapMouseToConstant();
-    loop();
+    redraw();
   }
 }
 

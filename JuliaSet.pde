@@ -3,6 +3,10 @@ boolean cursorVisible = true;
 boolean colored = true;
 boolean mandelbrot = false;
 
+boolean recording = false;
+String videoDirectoryTemplate = "./recordings/frames/video_$$$/frame-######.png";
+String videoDirectory;
+
 int animating = 0;
 int zooming = 0;
 
@@ -18,7 +22,8 @@ double minY = -2;
 double maxY = 2;
 
 float animationIncrement = 0.001;
-float zoomIncrement = 2;
+float zoomIncrementAuto = 1.01;
+float zoomIncrementStep = 4;
 float navigationIncrement = 0.01;
 int iterationIncrement = 100;
 
@@ -37,7 +42,7 @@ void setup() {
   size(400, 400);
   screenRatio = (float) height / width;
   resetScope();
-  frameRate(50);
+  frameRate(30);
   cursor(CROSS);
   colorMode(HSB, colorRange);
   background(0);
@@ -49,9 +54,12 @@ void draw() {
     animate(animating);
   }
   if (zooming != 0) {
-    zoom(zooming);
+    zoom(zooming, zoomIncrementAuto);
   }
   generateImage();
+  if (recording) {
+    record(); 
+  }
 }
 
 void generateImage() {
@@ -106,9 +114,11 @@ void keyPressed() {
   } else if (key == '1' && maxIterations - iterationIncrement > 0) {
     maxIterations -= iterationIncrement;
   } else if (key == 'w') {
-    zoom(-1);
+    zoom(-1, zoomIncrementStep);
   } else if (key == 'q') {
-    zoom(1);
+    zoom(1, zoomIncrementStep);
+  } else if (key == 'r') {
+    toggleRecording();
   } else if (key == '+') {
     escapeValue++;
   } else if (key == '-' && escapeValue > 0) {
@@ -138,6 +148,16 @@ void keyPressed() {
   }
   setLoop();
   redraw();
+}
+
+void toggleRecording() {
+  recording = !recording;
+  if (recording) {
+    videoDirectory = videoDirectoryTemplate.replace("$$$", nf((int) random(10000), 5));
+    println("Recording...");
+  } else {
+    println("Stopped Recording."); 
+  }
 }
 
 void toggleMouseControl() {
@@ -197,8 +217,8 @@ void animate(int direction) {
   constantY = tempY + cos(tempAngle) * cardioidRadius;
 }
 
-void zoom(int direction) {
-  double zoomRatio = pow(zoomIncrement, direction);
+void zoom(int direction, float increment) {
+  double zoomRatio = pow(increment, direction);
   double xDiff = ((maxX - minX) / 2) * zoomRatio;
   double yDiff = ((maxY - minY) / 2) * zoomRatio;
   double midX = (minX + maxX) / 2;
@@ -228,7 +248,6 @@ void mouseClicked() {
   double selectedY = mapper(mouseY, 0, height, minY, maxY);
   setCenter(selectedX, selectedY);
   redraw();
-  saveFrame("C:/Users/dante/Pictures/Processing_Movies/JuliaSet/video1/frame-####.png");
 }
 
 void setCenter(double selectedX, double selectedY) {
@@ -307,4 +326,8 @@ void resetAnimation() {
 
 double mapper(double value, double start1, double stop1, double start2, double stop2) {
   return (value - start1) / (stop1 - start1) * (stop2 - start2) + start2;
+}
+
+void record() {
+  saveFrame(videoDirectory);
 }

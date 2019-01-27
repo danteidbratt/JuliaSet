@@ -6,7 +6,8 @@ boolean mandelbrot = false;
 int animating = 0;
 int zooming = 0;
 
-int maxIterations = 32;
+int defaultMaxIterations = 32;
+int maxIterations = defaultMaxIterations;
 int escapeValue = 8;
 
 double constantX = -0.8;
@@ -16,23 +17,24 @@ double maxX = 2;
 double minY = -2;
 double maxY = 2;
 
-float cardioidAngle = PI * 1.5;
-float cardioidRadius = 0.2625;
-float cardioidCenter = -0.0125;
-
 float animationIncrement = 0.001;
-float zoomIncrement = 4;
+float zoomIncrement = 2;
 float navigationIncrement = 0.01;
 int iterationIncrement = 100;
 
-double defaultX = -0.5;
-double defaultY = 0;
+double defaultCenterX = -0.5;
+double defaultCenterY = 0;
 
 float screenRatio;
 int colorRange = 360;
 
+float defaultCardioidAngle = PI * 1.5;
+float cardioidAngle = defaultCardioidAngle;
+float cardioidRadius = 0.2625;
+float cardioidCenter = -0.0125;
+
 void setup() {
-  size(800, 800);
+  size(400, 400);
   screenRatio = (float) height / width;
   resetScope();
   frameRate(50);
@@ -196,13 +198,15 @@ void animate(int direction) {
 }
 
 void zoom(int direction) {
+  double zoomRatio = pow(zoomIncrement, direction);
+  double xDiff = ((maxX - minX) / 2) * zoomRatio;
+  double yDiff = ((maxY - minY) / 2) * zoomRatio;
   double midX = (minX + maxX) / 2;
   double midY = (minY + maxY) / 2;
-  double zoomRatio = pow(zoomIncrement, direction);
-  minX = midX - (midX - minX) * zoomRatio;
-  maxX = midX + (maxX - midX) * zoomRatio;
-  minY = midY - (midY - minY) * zoomRatio;
-  maxY = midY + (maxY - midY) * zoomRatio;
+  minX = midX - xDiff;
+  maxX = midX + xDiff;
+  minY = midY - yDiff;
+  maxY = midY + yDiff;
 }
 
 void mouseDragged() {
@@ -270,6 +274,7 @@ void resetJuliaSet() {
   freeze();
   resetScope();
   resetAnimation();
+  maxIterations = defaultMaxIterations;
   constantX = -0.8;
   constantY = 0;
 }
@@ -279,7 +284,8 @@ void resetMandelbrotSet() {
   mouseControl = false;
   freeze();
   resetScope();
-  setCenter(defaultX, defaultY);
+  maxIterations = defaultMaxIterations;
+  setCenter(defaultCenterX, defaultCenterY);
 }
 
 void resetScope() {
@@ -295,7 +301,7 @@ void freeze() {
 }
 
 void resetAnimation() {
-  cardioidAngle = PI * 1.5;
+  cardioidAngle = defaultCardioidAngle;
 }
 
 double mapper(double value, double start1, double stop1, double start2, double stop2) {

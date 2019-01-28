@@ -3,6 +3,7 @@ boolean cursorVisible = true;
 boolean colored = true;
 boolean mandelbrot = false;
 
+// .png and size(400, 400) for smooth recording
 boolean recording = false;
 String videoDirectoryTemplate = "./recordings/frames/$$$/frame-#######.png";
 String videoDirectory;
@@ -11,7 +12,7 @@ String videoName;
 int animating = 0;
 int zooming = 0;
 
-int defaultMaxIterations = 32;
+int defaultMaxIterations = 64;
 int maxIterations = defaultMaxIterations;
 int escapeValue = 8;
 
@@ -23,10 +24,10 @@ double minY = -2;
 double maxY = 2;
 
 float animationIncrement = 0.001;
-float zoomIncrementAuto = 1.01;
+float zoomIncrementAuto = 1.1;
 float zoomIncrementStep = 4;
 float navigationIncrement = 0.01;
-int iterationIncrement = 100;
+int maxIterationIncrement = 100;
 
 double defaultCenterX = -0.5;
 double defaultCenterY = 0;
@@ -59,7 +60,9 @@ void draw() {
   }
   generateImage();
   if (recording) {
-    record();
+    if (zooming != 0) { 
+      captureFrame();
+    }
     drawRecordingDot();
   }
 }
@@ -112,9 +115,9 @@ color getPixelColor(int n) {
 
 void keyPressed() {
   if (key == '2') {
-    maxIterations += iterationIncrement;
-  } else if (key == '1' && maxIterations - iterationIncrement > 0) {
-    maxIterations -= iterationIncrement;
+    maxIterations += maxIterationIncrement;
+  } else if (key == '1' && maxIterations - maxIterationIncrement > 0) {
+    maxIterations -= maxIterationIncrement;
   } else if (key == 'w') {
     zoom(-1, zoomIncrementStep);
   } else if (key == 'q') {
@@ -159,7 +162,7 @@ void toggleRecording() {
     videoDirectory = videoDirectoryTemplate.replace("$$$", videoName);
     println("Recording...");
   } else {
-    println("...Stopped Recording\nSaved as: " + videoName); 
+    println("...Stopped Recording\nSaved as " + videoName);
   }
 }
 
@@ -331,7 +334,7 @@ double mapper(double value, double start1, double stop1, double start2, double s
   return (value - start1) / (stop1 - start1) * (stop2 - start2) + start2;
 }
 
-void record() {
+void captureFrame() {
   saveFrame(videoDirectory);
 }
 

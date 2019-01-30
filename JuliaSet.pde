@@ -16,12 +16,18 @@ int defaultMaxIterations = 64;
 int maxIterations = defaultMaxIterations;
 int escapeValue = 8;
 
-double constantX = -0.8;
-double constantY = 0;
-double minX = -2;
-double maxX = 2;
-double minY = -2;
-double maxY = 2;
+double constantX;
+double constantY;
+
+double defaultSize = 2;
+double size;
+
+double centerX;
+double centerY;
+double minX;
+double maxX;
+double minY;
+double maxY;
 
 float animationIncrement = 0.001;
 float zoomIncrementAuto = 1.1;
@@ -29,26 +35,23 @@ float zoomIncrementStep = 4;
 float navigationIncrement = 0.01;
 int maxIterationIncrement = 100;
 
-double defaultCenterX = -0.5;
-double defaultCenterY = 0;
-
 float screenRatio;
 int colorRange = 360;
 
 float defaultCardioidAngle = PI * 1.5;
-float cardioidAngle = defaultCardioidAngle;
+float cardioidAngle;
 float cardioidRadius = 0.2625;
 float cardioidCenter = -0.0125;
 
 void setup() {
   size(400, 400);
   screenRatio = (float) height / width;
-  resetScope();
   frameRate(30);
   cursor(CROSS);
   colorMode(HSB, colorRange);
   background(0);
   noLoop();
+  resetJuliaSet();
 }
 
 void draw() {
@@ -132,10 +135,10 @@ void keyPressed() {
     toggleMouseControl();
   } else if (key == 'n') {
     toggleCursorVisible();
-  } else if (key == 'x') {
-    toggleAnimating(1);
-  } else if (key == 'z') {
-    toggleAnimating(-1);
+  } else if (key == 's') {
+    setAnimating(1);
+  } else if (key == 'a') {
+    setAnimating(-1);
   } else if (keyCode > 36 && keyCode < 41) {
     navigate();
   } else if (key == 'c') {
@@ -145,11 +148,15 @@ void keyPressed() {
   } else if (key == ',') {
     resetJuliaSet();
   } else if (key == 'i') {
-    toggleZooming(-1);
+    setZooming(-1);
   } else if (key == 'o') {
-    toggleZooming(1);
+    setZooming(1);
   } else if (key == ' ') {
     freeze();
+  } else if (key == 'p') {
+    resetPosition();
+  } else if (key == 'z') {
+    resetZoom(); 
   }
   setLoop();
   redraw();
@@ -173,7 +180,7 @@ void toggleMouseControl() {
   resetAnimation();
 }
 
-void toggleAnimating(int direction) {
+void setAnimating(int direction) {
   if (mandelbrot) {
     return;
   }
@@ -185,7 +192,7 @@ void toggleAnimating(int direction) {
   }
 }
 
-void toggleZooming(int direction) {
+void setZooming(int direction) {
   if (zooming == direction) {
     zooming = 0;
   } else {
@@ -224,46 +231,27 @@ void animate(int direction) {
 }
 
 void zoom(int direction, float increment) {
-  double zoomRatio = pow(increment, direction);
-  double xDiff = ((maxX - minX) / 2) * zoomRatio;
-  double yDiff = ((maxY - minY) / 2) * zoomRatio;
-  double midX = (minX + maxX) / 2;
-  double midY = (minY + maxY) / 2;
-  minX = midX - xDiff;
-  maxX = midX + xDiff;
-  minY = midY - yDiff;
-  maxY = midY + yDiff;
+  size *= pow(increment, direction);
+  println(size);
+  setFrame();
 }
 
 void mouseDragged() {
   dragPicture();
-  redraw();
 }
 
 void dragPicture() {
-  double xDiff = mapper(pmouseX - mouseX, 0, width, 0, maxX - minX);
-  double yDiff = mapper(pmouseY - mouseY, 0, height, 0, maxY - minY);
-  minX += xDiff;
-  maxX += xDiff;
-  minY += yDiff;
-  maxY += yDiff;
-}
-
-void mouseClicked() {
-  double selectedX = mapper(mouseX, 0, width, minX, maxX);
-  double selectedY = mapper(mouseY, 0, height, minY, maxY);
-  setCenter(selectedX, selectedY);
+  centerX += mapper(pmouseX - mouseX, 0, width, 0, size * 2);
+  centerY += mapper(pmouseY - mouseY, 0, height, 0, size * 2 * screenRatio);
+  setFrame();
   redraw();
 }
 
-void setCenter(double selectedX, double selectedY) {
-  double xDistance = maxX - ((maxX + minX) / 2);
-  double yDistance = maxY - ((maxY + minY) / 2);
-  minX = selectedX - xDistance;
-  maxX = selectedX + xDistance;
-  minY = selectedY - yDistance;
-  maxY = selectedY + yDistance;
-  println("X:" + selectedX + " Y:" + selectedY);
+void mouseClicked() {
+  centerX = mapper(mouseX, 0, width, minX, maxX);
+  centerY = mapper(mouseY, 0, height, minY, maxY);
+  setFrame();
+  redraw();
 }
 
 void mouseMoved() {
@@ -283,42 +271,26 @@ void mapMouseToConstant() {
 }
 
 void navigate() {
-  int xDirection = (keyCode == RIGHT ? 1 : keyCode == LEFT ? -1 : 0);
-  int yDirection = (keyCode == DOWN ? 1 : keyCode == UP ? -1 : 0);
-  double xTotal = maxX - minX;
-  double yTotal = maxY - minY;
-  double xDiff = xTotal * navigationIncrement * xDirection; 
-  double yDiff = yTotal * navigationIncrement * yDirection;
-  minX += xDiff;
-  maxX += xDiff;
-  minY += yDiff;
-  maxY += yDiff;
+  centerX += size * navigationIncrement * (keyCode == RIGHT ? 1 : keyCode == LEFT ? -1 : 0);
+  centerY += size * navigationIncrement * (keyCode == DOWN ? 1 : keyCode == UP ? -1 : 0);
+  setFrame();
 }
 
 void resetJuliaSet() {
   mandelbrot = false;
+  mouseControl = false;
   freeze();
-  resetScope();
+  resetAll();
+  resetMaxIterations();
   resetAnimation();
-  maxIterations = defaultMaxIterations;
-  constantX = -0.8;
-  constantY = 0;
 }
 
 void resetMandelbrotSet() {
   mandelbrot = true;
   mouseControl = false;
   freeze();
-  resetScope();
-  maxIterations = defaultMaxIterations;
-  setCenter(defaultCenterX, defaultCenterY);
-}
-
-void resetScope() {
-  minX = -2;
-  maxX = 2;
-  minY = -2 * screenRatio;
-  maxY = 2 * screenRatio;
+  resetAll();
+  resetMaxIterations();
 }
 
 void freeze() {
@@ -328,6 +300,7 @@ void freeze() {
 
 void resetAnimation() {
   cardioidAngle = defaultCardioidAngle;
+  animate(0);
 }
 
 double mapper(double value, double start1, double stop1, double start2, double stop2) {
@@ -343,4 +316,32 @@ void drawRecordingDot() {
   strokeWeight(2);
   fill(0, colorRange, colorRange);
   ellipse(30, 30, 30, 30);
+}
+
+void resetAll() {
+  resetPosition();
+  resetZoom();
+  setFrame();
+}
+
+void resetZoom() {
+  size = defaultSize;
+  setFrame();
+}
+
+void resetPosition() {
+  centerX = mandelbrot ? -0.5 : 0;
+  centerY = 0;
+  setFrame();
+}
+
+void setFrame() {
+  minX = centerX - size;
+  maxX = centerX + size;
+  minY = centerY - size * screenRatio;
+  maxY = centerY + size * screenRatio;
+}
+
+void resetMaxIterations() {
+  maxIterations = defaultMaxIterations;
 }

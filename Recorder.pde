@@ -13,7 +13,7 @@ class Recorder {
   void toggleRecording() {
     recording = !recording;
     if (recording) {
-      videoName = "video_" + nf((int) random(10000), 6);
+      videoName = "video_" + nf((int) random(100000), 6);
       videoDirectory = videoDirectoryTemplate.replace("$$$", videoName);
       println("Recording...");
     } else {

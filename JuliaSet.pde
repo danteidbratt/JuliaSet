@@ -1,40 +1,38 @@
-boolean mouseControl = false;
-boolean cursorVisible = true;
-boolean colored = true;
-boolean mandelbrot = false;
-int animating = 0;
-int zooming = 0;
+private final CardioidAnimation animation = new CardioidAnimation();
+private final Recorder recorder = new Recorder();
+private final int defaultMaxIterations = 64;
+private final double defaultSize = 2;
+private final float zoomIncrementAuto = 1.1;
+private final float zoomIncrementStep = 4;
+private final float navigationIncrement = 0.01;
+private final int maxIterationIncrement = 100;
 
-int defaultMaxIterations = 64;
-int maxIterations = defaultMaxIterations;
-int escapeValue = 8;
+private boolean mouseControl = false;
+private boolean cursorVisible = true;
+private boolean colored = true;
+private boolean mandelbrot = false;
+private int animating = 0;
+private int zooming = 0;
 
-double c1;
-double c2;
+private int maxIterations = defaultMaxIterations;
+private int escapeValue = 8;
 
-double defaultSize = 2;
-double size;
+private double c1;
+private double c2;
 
-double centerX;
-double centerY;
-double minX;
-double maxX;
-double minY;
-double maxY;
+private double size;
+private double centerX;
+private double centerY;
+private double minX;
+private double maxX;
+private double minY;
+private double maxY;
 
-float zoomIncrementAuto = 1.1;
-float zoomIncrementStep = 4;
-float navigationIncrement = 0.01;
-int maxIterationIncrement = 100;
-
-float screenRatio;
-int colorRange = 360;
-
-CardioidAnimation animation = new CardioidAnimation();
-Recorder recorder = new Recorder();
+private float screenRatio;
+private int colorRange = 360;
 
 void setup() {
-  size(400, 400);
+  size(500, 500);
   screenRatio = (float) height / width;
   frameRate(30);
   cursor(CROSS);
@@ -71,8 +69,8 @@ void generateImage() {
 }
 
 int applyFormula(int x, int y) {
-  double a = mapper(x, 0, width, minX, maxX);
-  double b = mapper(y, 0, height, minY, maxY);
+  double a = translate(x, 0, width, minX, maxX);
+  double b = translate(y, 0, height, minY, maxY);
 
   if (mandelbrot) {
     c1 = a;
@@ -214,15 +212,15 @@ void mouseDragged() {
 }
 
 void dragPicture() {
-  centerX += mapper(pmouseX - mouseX, 0, width, 0, size * 2);
-  centerY += mapper(pmouseY - mouseY, 0, height, 0, size * 2 * screenRatio);
+  centerX += translate(pmouseX - mouseX, 0, width, 0, size * 2);
+  centerY += translate(pmouseY - mouseY, 0, height, 0, size * 2 * screenRatio);
   setFrame();
   redraw();
 }
 
 void mouseClicked() {
-  centerX = mapper(mouseX, 0, width, minX, maxX);
-  centerY = mapper(mouseY, 0, height, minY, maxY);
+  centerX = translate(mouseX, 0, width, minX, maxX);
+  centerY = translate(mouseY, 0, height, minY, maxY);
   setFrame();
   redraw();
 }
@@ -239,8 +237,8 @@ void toggleColored() {
 }
 
 void mapMouseToConstant() {
-  c1 = mapper(mouseX, 0, width, -1, 1);
-  c2 = mapper(mouseY, 0, height, -1, 1);
+  c1 = translate(mouseX, 0, width, -1, 1);
+  c2 = translate(mouseY, 0, height, -1, 1);
 }
 
 void navigate() {
@@ -271,7 +269,7 @@ void freeze() {
   animating = 0;
 }
 
-double mapper(double value, double start1, double stop1, double start2, double stop2) {
+double translate(double value, double start1, double stop1, double start2, double stop2) {
   return (value - start1) / (stop1 - start1) * (stop2 - start2) + start2;
 }
 

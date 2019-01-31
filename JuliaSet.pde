@@ -2,13 +2,6 @@ boolean mouseControl = false;
 boolean cursorVisible = true;
 boolean colored = true;
 boolean mandelbrot = false;
-
-// .png and size(400, 400) for smooth recording
-boolean recording = false;
-String videoDirectoryTemplate = "./recordings/frames/$$$/frame-#######.png";
-String videoDirectory;
-String videoName;
-
 int animating = 0;
 int zooming = 0;
 
@@ -16,8 +9,8 @@ int defaultMaxIterations = 64;
 int maxIterations = defaultMaxIterations;
 int escapeValue = 8;
 
-double constantX;
-double constantY;
+double c1;
+double c2;
 
 double defaultSize = 2;
 double size;
@@ -29,7 +22,6 @@ double maxX;
 double minY;
 double maxY;
 
-float animationIncrement = 0.001;
 float zoomIncrementAuto = 1.1;
 float zoomIncrementStep = 4;
 float navigationIncrement = 0.01;
@@ -38,10 +30,8 @@ int maxIterationIncrement = 100;
 float screenRatio;
 int colorRange = 360;
 
-float defaultCardioidAngle = PI * 1.5;
-float cardioidAngle;
-float cardioidRadius = 0.2625;
-float cardioidCenter = -0.0125;
+CardioidAnimation animation = new CardioidAnimation();
+Recorder recorder = new Recorder();
 
 void setup() {
   size(400, 400);
@@ -62,11 +52,8 @@ void draw() {
     zoom(zooming, zoomIncrementAuto);
   }
   generateImage();
-  if (recording) {
-    if (zooming != 0) { 
-      captureFrame();
-    }
-    drawRecordingDot();
+  if (recorder.isRecording()) { 
+    recorder.captureFrame(zooming);
   }
 }
 
@@ -88,8 +75,8 @@ int applyFormula(int x, int y) {
   double b = mapper(y, 0, height, minY, maxY);
 
   if (mandelbrot) {
-    constantX = a;
-    constantY = b;
+    c1 = a;
+    c2 = b;
   }
 
   int counter = 0;
@@ -97,8 +84,8 @@ int applyFormula(int x, int y) {
     double aa = a * a;
     double bb = b * b;
     double ab2 = a * b * 2;
-    a = aa - bb + constantX;
-    b = ab2 + constantY;
+    a = aa - bb + c1;
+    b = ab2 + c2;
     double result = a + b;
     if (result > escapeValue || result < -escapeValue) {
       break;
@@ -126,7 +113,7 @@ void keyPressed() {
   } else if (key == 'q') {
     zoom(1, zoomIncrementStep);
   } else if (key == 'r') {
-    toggleRecording();
+    recorder.toggleRecording();
   } else if (key == '+') {
     escapeValue++;
   } else if (key == '-' && escapeValue > 0) {
@@ -162,22 +149,11 @@ void keyPressed() {
   redraw();
 }
 
-void toggleRecording() {
-  recording = !recording;
-  if (recording) {
-    videoName = "video_" + nf((int) random(10000), 6);
-    videoDirectory = videoDirectoryTemplate.replace("$$$", videoName);
-    println("Recording...");
-  } else {
-    println("...Stopped Recording\nSaved as " + videoName);
-  }
-}
-
 void toggleMouseControl() {
   mouseControl = !mouseControl;
   mapMouseToConstant();
   freeze();
-  resetAnimation();
+  animation.reset();
 }
 
 void setAnimating(int direction) {
@@ -222,12 +198,9 @@ void animate(int direction) {
     animating = 0;
     return;
   }
-  cardioidAngle += animationIncrement *  direction;
-  float tempAngle = cardioidAngle * 2 + PI / 2;
-  float tempX = cardioidRadius * 2 * sin(cardioidAngle) + cardioidCenter;
-  float tempY = cardioidRadius * 2 * cos(cardioidAngle);
-  constantX = tempX + sin(tempAngle) * cardioidRadius;
-  constantY = tempY + cos(tempAngle) * cardioidRadius;
+  animation.setNextFrame(direction);
+  c1 = animation.getC1();
+  c2 = animation.getC2();
 }
 
 void zoom(int direction, float increment) {
@@ -266,8 +239,8 @@ void toggleColored() {
 }
 
 void mapMouseToConstant() {
-  constantX = mapper(mouseX, 0, width, -1, 1);
-  constantY = mapper(mouseY, 0, height, -1, 1);
+  c1 = mapper(mouseX, 0, width, -1, 1);
+  c2 = mapper(mouseY, 0, height, -1, 1);
 }
 
 void navigate() {
@@ -282,7 +255,7 @@ void resetJuliaSet() {
   freeze();
   resetAll();
   resetMaxIterations();
-  resetAnimation();
+  animation.reset();
 }
 
 void resetMandelbrotSet() {
@@ -298,24 +271,8 @@ void freeze() {
   animating = 0;
 }
 
-void resetAnimation() {
-  cardioidAngle = defaultCardioidAngle;
-  animate(0);
-}
-
 double mapper(double value, double start1, double stop1, double start2, double stop2) {
   return (value - start1) / (stop1 - start1) * (stop2 - start2) + start2;
-}
-
-void captureFrame() {
-  saveFrame(videoDirectory);
-}
-
-void drawRecordingDot() {
-  stroke(colorRange);
-  strokeWeight(2);
-  fill(0, colorRange, colorRange);
-  ellipse(30, 30, 30, 30);
 }
 
 void resetAll() {

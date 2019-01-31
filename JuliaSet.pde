@@ -1,25 +1,21 @@
 private final CardioidAnimation animation = new CardioidAnimation();
 private final Recorder recorder = new Recorder();
-private final int defaultMaxIterations = 64;
-private final double defaultSize = 2;
 private final float zoomIncrementAuto = 1.1;
 private final float zoomIncrementStep = 4;
 private final float navigationIncrement = 0.01;
 private final int maxIterationIncrement = 100;
-
+private final int defaultMaxIterations = 64;
+private final double defaultSize = 2;
 private boolean mouseControl = false;
 private boolean cursorVisible = true;
 private boolean colored = true;
 private boolean mandelbrot = false;
 private int animating = 0;
 private int zooming = 0;
-
 private int maxIterations = defaultMaxIterations;
 private int escapeValue = 8;
-
 private double c1;
 private double c2;
-
 private double size;
 private double centerX;
 private double centerY;
@@ -27,7 +23,6 @@ private double minX;
 private double maxX;
 private double minY;
 private double maxY;
-
 private float screenRatio;
 private int colorRange = 360;
 
@@ -141,7 +136,9 @@ void keyPressed() {
   } else if (key == 'p') {
     resetPosition();
   } else if (key == 'z') {
-    resetZoom(); 
+    resetZoom();
+  } else if (key == 'h') {
+    printInformation();
   }
   setLoop();
   redraw();
@@ -203,7 +200,6 @@ void animate(int direction) {
 
 void zoom(int direction, float increment) {
   size *= pow(increment, direction);
-  println(size);
   setFrame();
 }
 
@@ -299,4 +295,10 @@ void setFrame() {
 
 void resetMaxIterations() {
   maxIterations = defaultMaxIterations;
+}
+
+// TODO: Size seems to have infinite precision. How to give centerX/Y same precision?
+void printInformation() {
+  println(String.format("\nX:%.30f\tY:%.30f\nSize:%.100f\nIterations:%d", 
+    centerX, centerY, size, maxIterations));
 }
